@@ -1,9 +1,9 @@
 from __future__ import annotations
-
-import argo
-import argo.connection as ac
-import argo.interaction
-from saw.commands import *
+import os
+import signal
+from argo_client.connection import ServerConnection, DynamicSocketProcess
+from argo_client.interaction import Interaction, Command
+from .commands import *
 
 from typing import Optional, Union, Any, List
 
@@ -15,18 +15,25 @@ def connect(command: str, cryptol_path: Optional[str] = None, *, persist: bool =
 class SAWConnection:
     """A representation of a current user state in a session with SAW."""
 
-    most_recent_result: Optional[argo.interaction.Interaction]
+    most_recent_result: Optional[Interaction]
 
     def __init__(self,
-                 command_or_connection: Union[str, ac.ServerConnection],
+                 command_or_connection: Union[str, ServerConnection],
                  *, persist: bool = False) -> None:
         self.most_recent_result = None
         self.persist = persist
         if isinstance(command_or_connection, str):
-            self.proc = ac.DynamicSocketProcess(command_or_connection, persist=self.persist)
-            self.server_connection = ac.ServerConnection(self.proc)
+            self.proc = DynamicSocketProcess(command_or_connection, persist=self.persist)
+            self.server_connection = ServerConnection(self.proc)
         else:
             self.server_connection = command_or_connection
+
+    def disconnect(self) -> None:
+        if not self.persist:
+            if self.proc:
+                os.killpg(os.getpgid(self.proc.pid()), signal.SIGKILL)
+            del self.server_connection
+        
 
     def pid(self) -> Optional[int]:
         """Return the PID of the running server process."""
@@ -52,11 +59,11 @@ class SAWConnection:
             return self.most_recent_result.state()
 
     # Protocol messages
-    def cryptol_load_file(self, filename: str) -> argo.interaction.Command:
+    def cryptol_load_file(self, filename: str) -> Command:
         self.most_recent_result = CryptolLoadFile(self, filename)
         return self.most_recent_result
 
-    def llvm_load_module(self, name: str, bitcode_file: str)  -> argo.interaction.Command:
+    def llvm_load_module(self, name: str, bitcode_file: str)  -> Command:
         self.most_recent_result = LLVMLoadModule(self, name, bitcode_file)
         return self.most_recent_result
 
@@ -67,7 +74,7 @@ class SAWConnection:
                     check_sat: bool,
                     contract: Any,
                     script: Any,
-                    lemma_name: str) -> argo.interaction.Command:
+                    lemma_name: str) -> Command:
         self.most_recent_result = \
             LLVMVerify(self, module, function, lemmas, check_sat, contract, script, lemma_name)
         return self.most_recent_result
@@ -76,7 +83,7 @@ class SAWConnection:
                     module: str,
                     function: str,
                     contract: Any,
-                    lemma_name: str) -> argo.interaction.Command:
+                    lemma_name: str) -> Command:
         self.most_recent_result = \
             LLVMAssume(self, module, function, contract, lemma_name)
         return self.most_recent_result

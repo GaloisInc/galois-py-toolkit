@@ -1,15 +1,14 @@
-import argo.interaction
-from argo.interaction import HasProtocolState
+import argo_client.interaction as argo
 from . import exceptions
 
 from typing import Any, List
 
-class SAWCommand(argo.interaction.Command):
-    def process_error(self, ae : argo.interaction.ArgoException) -> Exception:
+class SAWCommand(argo.Command):
+    def process_error(self, ae : argo.ArgoException) -> Exception:
         return exceptions.make_saw_exception(ae)
 
 class CryptolLoadFile(SAWCommand):
-    def __init__(self, connection : HasProtocolState, filename : str) -> None:
+    def __init__(self, connection : argo.HasProtocolState, filename : str) -> None:
         super(CryptolLoadFile, self).__init__(
             'SAW/Cryptol/load file',
             {'file': filename},
@@ -20,7 +19,7 @@ class CryptolLoadFile(SAWCommand):
         return None
 
 class CryptolLoadModule(SAWCommand):
-    def __init__(self, connection : HasProtocolState, module_name : str) -> None:
+    def __init__(self, connection : argo.HasProtocolState, module_name : str) -> None:
         super(CryptolLoadModule, self).__init__(
             'SAW/Cryptol/load module',
             {'module': module_name},
@@ -31,7 +30,7 @@ class CryptolLoadModule(SAWCommand):
         return None
 
 class LLVMLoadModule(SAWCommand):
-    def __init__(self, connection : HasProtocolState,
+    def __init__(self, connection : argo.HasProtocolState,
                  name : str,
                  bitcode_file : str) -> None:
         super(LLVMLoadModule, self).__init__(
@@ -46,7 +45,7 @@ class LLVMLoadModule(SAWCommand):
 class LLVMAssume(SAWCommand):
     def __init__(
             self,
-            connection : HasProtocolState,
+            connection : argo.HasProtocolState,
             module : str,
             function : str,
             setup : Any,
@@ -63,7 +62,7 @@ class LLVMAssume(SAWCommand):
 class LLVMVerify(SAWCommand):
     def __init__(
             self,
-            connection : HasProtocolState,
+            connection : argo.HasProtocolState,
             module : str,
             function : str,
             lemmas : List[str],

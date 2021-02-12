@@ -2,7 +2,6 @@ from abc import ABCMeta, abstractmethod
 from cryptol import cryptoltypes
 from saw.llvm_types import LLVMType
 from dataclasses import dataclass, field
-import pprint
 import re
 from typing import Any, List, Optional, Set, Union
 from typing_extensions import Literal

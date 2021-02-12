@@ -1,7 +1,6 @@
-from abc import ABC, abstractmethod
 from itertools import chain
 from typing import Dict, Any, List, Iterable, Type
-from argo.interaction import ArgoException
+from argo_client.interaction import ArgoException
 
 
 class SAWException(Exception):

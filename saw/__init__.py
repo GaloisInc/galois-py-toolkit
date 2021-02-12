@@ -1,19 +1,15 @@
 from abc import ABCMeta, abstractmethod
-from dataclasses import dataclass, field
-from typing import List, Optional, Set, Union, Dict, Tuple, Any, Callable, IO
-import webbrowser
-import subprocess
+from dataclasses import dataclass
+from typing import List, Optional, Set, Union, Tuple, Any, IO
 import uuid
 import os
 import sys
-import inspect
-import posixpath
+import signal
 import atexit
-import re
+from distutils.spawn import find_executable
 
 from . import connection
-from argo.connection import ServerConnection
-from argo.interaction import ArgoException
+from argo_client.connection import ServerConnection
 from . import llvm
 from . import exceptions
 from . import proofscript
@@ -132,6 +128,28 @@ def connect(command_or_connection: Union[str, ServerConnection],
                 except ProcessLookupError:
                     pass
         atexit.register(print_if_still_running)
+
+def disconnect() -> None:
+    global __designated_connection
+    if __designated_connection is not None:
+        try:
+            pid = __designated_connection.pid()
+            os.killpg(os.getpgid(pid), signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        __designated_connection = None
+    else:
+        raise ValueError("There is no connection to disconnect from."
+                         " Did you call `disconnect()` more than once?")
+
+def find_saw_server():
+    server = os.environ.get('SAW_SERVER')
+    if not server:
+        if find_executable("saw-remote-api"):
+            server = "saw-remote-api"
+        else:
+            raise RuntimeError('Failed to find saw-remote-api executable in PATH nor was the SAW_SERVER environment variable set')
+    return server
 
 
 class View:
