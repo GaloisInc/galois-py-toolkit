@@ -36,7 +36,7 @@ class SwapEasyTest(unittest.TestCase):
         mod = saw.llvm_load_module(swap_bc)
 
         result = saw.llvm_verify(mod, 'swap', Swap())
-        self.assertTrue(result.is_success)
+        self.assertIs(result.is_success(), True)
         saw.disconnect()
 
 

@@ -57,11 +57,11 @@ class LLVMStructTest(unittest.TestCase):
         mod = llvm_load_module(bcname)
 
         # crucible_llvm_verify m "set_indirect" [] false set_spec abc;
-        self.assertTrue(llvm_verify(mod, 'set_indirect', SetContract()).is_success())
+        self.assertIs(llvm_verify(mod, 'set_indirect', SetContract()).is_success(), True)
         # crucible_llvm_verify m "add_indirect" [] false add_spec abc;
-        self.assertTrue(llvm_verify(mod, 'add_indirect', AddContract()).is_success())
+        self.assertIs(llvm_verify(mod, 'add_indirect', AddContract()).is_success(), True)
         # crucible_llvm_verify m "s_id" [] false id_spec abc;
-        self.assertTrue(llvm_verify(mod, 's_id', IdContract()).is_success())
+        self.assertIs(llvm_verify(mod, 's_id', IdContract()).is_success(), True)
         disconnect()
 
 if __name__ == "__main__":
