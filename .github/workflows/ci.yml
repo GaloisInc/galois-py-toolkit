@@ -49,10 +49,14 @@ jobs:
     - name: Test Cryptol low-level remote API
       run: |
         python -m unittest tests/cryptol/test_low_level_ops.py
+      env:
+        CRYPTOL_SERVER_URL: "http://localhost:8080/"
     - name: Test Cryptol remote API
       run: |
         docker restart cryptol-remote-api
         python -m unittest tests/cryptol/test_cryptol_api.py
+      env:
+        CRYPTOL_SERVER_URL: "http://localhost:8080/"
 
     # - name: Unittest Cryptol (eval) client/server
     #   run: |

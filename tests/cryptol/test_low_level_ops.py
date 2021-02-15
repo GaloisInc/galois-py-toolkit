@@ -44,7 +44,7 @@ class LowLevelCryptolApiTests(unittest.TestCase):
         elif (command := find_executable('cryptol-remote-api')) is not None:
             self.c = argo.ServerConnection(argo.StdIOProcess(command + " stdio"))
         else:
-            raise RuntimeError("NO CRYPTOL SERVER IDENTIFIABLE")
+            raise RuntimeError("NO CRYPTOL SERVER FOUND")
 
         self.dir_path = str(Path('tests','cryptol','test-files'))
 
