@@ -6,12 +6,13 @@ import base64
 import os
 import types
 import sys
-from typing import Any, Dict, Iterable, List, NoReturn, Optional, Union
+from distutils.spawn import find_executable
+from typing import Any, Dict, Iterable, List, NoReturn, Optional, Union, Callable
 from mypy_extensions import TypedDict
 
 import argo_client.interaction as argo
 from argo_client.interaction import HasProtocolState
-from argo_client.connection import DynamicSocketProcess, ServerConnection, ServerProcess, StdIOProcess
+from argo_client.connection import DynamicSocketProcess, ServerConnection, ServerProcess, StdIOProcess, HttpProcess
 from . import cryptoltypes
 from . import solver
 from .bitvector import BV
@@ -194,16 +195,53 @@ class CryptolFocusedModule(argo.Query):
     def process_result(self, res : Any) -> Any:
         return res
 
-def connect(command : str, cryptol_path : Optional[str] = None) -> CryptolConnection:
-    """Start a new connection to a new Cryptol server process.
+def connect(command : str=None, *,
+            cryptol_path : Optional[str] = None,
+            url : Optional[str] = None) -> CryptolConnection:
+    """
+    Connect to a (possibly new) Cryptol server process.
 
-    :param command: The command to launch the Cryptol server.
+    :param command: A command to launch a new Cryptol server in socket mode (if provided).
 
-    :param cryptol_path: An optional replacement for the contents of
-      the ``CRYPTOLPATH`` environment variable.
+    :param cryptol_path: A replacement for the contents of
+      the ``CRYPTOLPATH`` environment variable (if provided).
+
+    :param url: A URL at which to connect to an already running Cryptol 
+    HTTP server.
+
+    If no parameters are provided, the following are attempted in order:
+
+    1. If the environment variable ``CRYPTOL_SERVER`` is set and referse to an executable,
+    it is assumed to be a Cryptol server and will be used for a new stdio connection.
+
+    2. If the environment variable ``CRYPTOL_SERVER_URL`` is set, it is assumed to be
+    the URL for a running Cryptol server in HTTP mode and will be connected to.
+
+    3. If an executable ``cryptol-remote-api`` is available on the ``PATH``
+    it is assumed to be a Cryptol server and will be used for a new stdio connection.
 
     """
-    return CryptolConnection(command, cryptol_path)
+    if command is not None:
+        if url is not None:
+            raise ValueError("A Cryptol server URL cannot be specified with a command currently.")
+        return CryptolConnection(command, cryptol_path)
+    elif url is not None:
+        return CryptolConnection(ServerConnection(HttpProcess(url)), cryptol_path)
+    elif (command := os.getenv('CRYPTOL_SERVER')) is not None and (command := find_executable(command)) is not None:
+        return CryptolConnection(CryptolStdIOProcess(command+" stdio", cryptol_path=cryptol_path))
+    elif (url := os.getenv('CRYPTOL_SERVER_URL')) is not None:
+        return CryptolConnection(ServerConnection(HttpProcess(url)), cryptol_path)
+    elif (command := find_executable('cryptol-remote-api')) is not None:
+        return CryptolConnection(CryptolStdIOProcess(command+" stdio", cryptol_path=cryptol_path))
+    else:
+        raise ValueError(
+            """cryptol.connect requires one of the following:",
+               1) a command to launch a cryptol server is the first positional argument,
+               2) a URL to connect to a running cryptol server is provided via the `url` keyword argument,
+               3) the environment variable `CRYPTOL_SERVER` must refer to a valid server executable, or
+               4) the environment variable `CRYPTOL_SERVER_URL` must refer to the URL of a running cryptol server.""")
+    
+
 
 def connect_stdio(command : str, cryptol_path : Optional[str] = None) -> CryptolConnection:
     """Start a new connection to a new Cryptol server process.
@@ -215,6 +253,7 @@ def connect_stdio(command : str, cryptol_path : Optional[str] = None) -> Cryptol
 
     """
     conn = CryptolStdIOProcess(command, cryptol_path=cryptol_path)
+
     return CryptolConnection(conn)
 
 
@@ -238,7 +277,9 @@ class CryptolConnection:
     most_recent_result : Optional[argo.Interaction]
     proc: ServerProcess
 
-    def __init__(self, command_or_connection : Union[str, ServerConnection, ServerProcess], cryptol_path : Optional[str] = None) -> None:
+    def __init__(self,
+                command_or_connection : Union[str, ServerConnection, ServerProcess], 
+                cryptol_path : Optional[str] = None) -> None:
         self.most_recent_result = None
         if isinstance(command_or_connection, ServerProcess):
             self.proc = command_or_connection
@@ -282,13 +323,18 @@ class CryptolConnection:
         self.most_recent_result = CryptolLoadModule(self, module_name)
         return self.most_recent_result
 
-    def evaluate_expression(self, expression : Any) -> argo.Query:
+    def eval(self, expression : Any) -> argo.Query:
         """Evaluate a Cryptol expression, represented according to
         :ref:`cryptol-json-expression`, with Python datatypes standing
         for their JSON equivalents.
         """
         self.most_recent_result = CryptolEvalExpr(self, expression)
         return self.most_recent_result
+
+    def evaluate_expression(self, expression : Any) -> argo.Query:
+        """Synonym for member method ``eval``.
+        """
+        return self.eval(expression)
 
     def call(self, fun : str, *args : List[Any]) -> argo.Query:
         encoded_args = [cryptoltypes.CryptolType().from_python(a) for a in args]
@@ -329,8 +375,6 @@ class CryptolConnection:
         """Return the name of the currently-focused module."""
         self.most_recent_result = CryptolFocusedModule(self)
         return self.most_recent_result
-
-
 
 class CryptolDynamicSocketProcess(DynamicSocketProcess):
 

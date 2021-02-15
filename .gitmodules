@@ -1,0 +1,6 @@
+[submodule "server-repositories/cryptol"]
+	path = server-repositories/cryptol
+	url = https://github.com/GaloisInc/cryptol.git
+[submodule "server-repositories/saw-script"]
+	path = server-repositories/saw-script
+	url = https://github.com/GaloisInc/saw-script.git

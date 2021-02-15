@@ -31,13 +31,34 @@ def do_test_instantiation(c, state, t, expected=None):
     assert('type schema' in reply_t['result']['answer'])
     assert(reply_t['result']['answer']['type schema']['type']['domain'] == expected)
 
-class GenericLowLevelCryptolApiTests():
-    # to be implemented by classes extending this one
-    def get_connection(self): pass
+class LowLevelCryptolApiTests(unittest.TestCase):
+    c = None
+    dir_path = None
+
+    @classmethod
+    def setUpClass(self):
+        if (command := os.getenv('CRYPTOL_SERVER')) is not None and (command := find_executable(command)) is not None:
+            self.c = argo.ServerConnection(argo.DynamicSocketProcess(command + " socket"))
+        elif (url := os.getenv('CRYPTOL_SERVER_URL')) is not None:
+            self.c = argo.ServerConnection(argo.HttpProcess(url))
+        elif (command := find_executable('cryptol-remote-api')) is not None:
+            self.c = argo.ServerConnection(argo.StdIOProcess(command + " stdio"))
+        else:
+            raise RuntimeError("NO CRYPTOL SERVER IDENTIFIABLE")
+
+        self.dir_path = str(Path('tests','cryptol','test-files'))
 
     def test_low_level_api(self):
-        c = self.get_connection()
-        id_1 = c.send_command("load module", {"module name": "M", "state": None})
+        c = self.c
+
+        id_0 = c.send_command("change directory", {"directory": self.dir_path, "state": None})
+        reply_0 = c.wait_for_reply_to(id_0)
+        assert('result' in reply_0)
+        assert('state' in reply_0['result'])
+        state_0 = reply_0['result']['state']
+
+
+        id_1 = c.send_command("load file", {"file": "M.cry", "state": state_0})
         reply_1 = c.wait_for_reply_to(id_1)
         assert('result' in reply_1)
         assert('state' in reply_1['result'])
@@ -209,78 +230,49 @@ class GenericLowLevelCryptolApiTests():
                              'length': {'value': 20, 'type': 'number'},
                              'contents': {'type': 'Z', 'modulus': {'value': 5, 'type': 'number'}}})
 
-
-class DynamicSocketLowLevelCryptolApiTests(GenericLowLevelCryptolApiTests, unittest.TestCase):
-    c = None
-
-    @classmethod
-    def setUpClass(self):
-        if find_executable("cryptol-remote-api"):
-            self.c = argo.ServerConnection(cryptol.CryptolDynamicSocketProcess(
-                "cryptol-remote-api socket",
-                cryptol_path=cryptol_path))
-        else:
-            raise RuntimeError('Failed to find cryptol-remote-api executable in PATH')
-
-    # to be implemented by classes extending this one
-    def get_connection(self):
-        return self.c
-
-
-class StdIOLowLevelCryptolApiTests(GenericLowLevelCryptolApiTests, unittest.TestCase):
-    c = None
-    @classmethod
-    def setUpClass(self):
-        if find_executable("cryptol-remote-api"):
-            self.c = argo.ServerConnection(cryptol.CryptolStdIOProcess(
-                "cryptol-remote-api stdio",
-                cryptol_path=cryptol_path))
-        else:
-            raise RuntimeError('Failed to find cryptol-remote-api executable in PATH')
-
-    # to be implemented by classes extending this one
-    def get_connection(self):
-        return self.c
-
-class RemoteSockeLowLevelCryptolApiTests(GenericLowLevelCryptolApiTests, unittest.TestCase):
-    p = None
-
-    @classmethod
-    def setUpClass(self):
-        env = os.environ.copy()
-        env['CRYPTOLPATH'] = cryptol_path
-
-        if find_executable("cryptol-remote-api"):
-            p = subprocess.Popen(
-                ["cryptol-remote-api", "socket", "--port", "50005"],
-                stdout=subprocess.DEVNULL,
-                stdin=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True,
-                env=env)
-        else:
-            raise RuntimeError('Failed to find cryptol-remote-api executable in PATH')
-
-        time.sleep(5)
-        assert(p is not None)
-        poll_result = p.poll()
-        if poll_result is not None:
-            print(poll_result)
-            print(p.stdout.read())
-            print(p.stderr.read())
-        assert(poll_result is None)
-        self.p = p
-
-        self.c = argo.ServerConnection(argo.RemoteSocketProcess('localhost', 50005, ipv6=True))
-
-    @classmethod
-    def tearDownClass(self):
-        os.killpg(os.getpgid(self.p.pid), signal.SIGKILL)
-        super().tearDownClass()
-
-    # to be implemented by classes extending this one
-    def get_connection(self):
-        return self.c
-
 if __name__ == "__main__":
     unittest.main()
+
+
+
+
+
+# class RemoteSockeLowLevelCryptolApiTests(GenericLowLevelCryptolApiTests, unittest.TestCase):
+#     p = None
+
+#     @classmethod
+#     def setUpClass(self):
+#         env = os.environ.copy()
+#         env['CRYPTOLPATH'] = cryptol_path
+
+#         if find_executable("cryptol-remote-api"):
+#             p = subprocess.Popen(
+#                 ["cryptol-remote-api", "socket", "--port", "50005"],
+#                 stdout=subprocess.DEVNULL,
+#                 stdin=subprocess.DEVNULL,
+#                 stderr=subprocess.DEVNULL,
+#                 start_new_session=True,
+#                 env=env)
+#         else:
+#             raise RuntimeError('Failed to find cryptol-remote-api executable in PATH')
+
+#         time.sleep(5)
+#         assert(p is not None)
+#         poll_result = p.poll()
+#         if poll_result is not None:
+#             print(poll_result)
+#             print(p.stdout.read())
+#             print(p.stderr.read())
+#         assert(poll_result is None)
+#         self.p = p
+
+#         self.c = argo.ServerConnection(argo.RemoteSocketProcess('localhost', 50005, ipv6=True))
+
+#     @classmethod
+#     def tearDownClass(self):
+#         os.killpg(os.getpgid(self.p.pid), signal.SIGKILL)
+#         super().tearDownClass()
+
+#     # to be implemented by classes extending this one
+#     def get_connection(self):
+#         return self.c
