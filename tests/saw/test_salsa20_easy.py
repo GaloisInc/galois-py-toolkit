@@ -1,5 +1,4 @@
-import os
-import os.path
+from pathlib import Path
 import unittest
 from cryptol.cryptoltypes import to_cryptol
 from saw import *
@@ -127,11 +126,11 @@ class Salsa20EasyTest(unittest.TestCase):
     def test_salsa20(self):
         dir_path = os.path.dirname(os.path.realpath(__file__))
 
-        connect(find_saw_server() + " socket")
+        connect()
         if __name__ == "__main__": view(LogResults())
 
-        bcname = os.path.join(dir_path, 'salsa20.bc')
-        cryname = os.path.join(dir_path, 'Salsa20.cry')
+        bcname = str(Path('tests','saw','test-files', 'salsa20.bc'))
+        cryname = str(Path('tests','saw','test-files', 'Salsa20.cry'))
 
         cryptol_load_file(cryname)
 
@@ -153,7 +152,6 @@ class Salsa20EasyTest(unittest.TestCase):
         self.assertIs(expand_result.is_success(), True)
         crypt_result = llvm_verify(mod, 's20_crypt32', Salsa20CryptContract(63), lemmas=[expand_result])
         self.assertIs(crypt_result.is_success(), True)
-        disconnect()
 
 if __name__ == "__main__":
     unittest.main()

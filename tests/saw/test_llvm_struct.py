@@ -1,5 +1,4 @@
-import os
-import os.path
+from pathlib import Path
 import unittest
 from saw import *
 from saw.llvm import Contract, SetupVal, FreshVar, cryptol, struct, LLVMType, void
@@ -50,10 +49,9 @@ class IdContract(Contract):
 
 class LLVMStructTest(unittest.TestCase):
     def test_llvm_struct(self):
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        connect(find_saw_server() + " socket")
+        connect()
         if __name__ == "__main__": view(LogResults())
-        bcname = os.path.join(dir_path, 'llvm_struct.bc')
+        bcname = str(Path('tests','saw','test-files', 'llvm_struct.bc'))
         mod = llvm_load_module(bcname)
 
         # crucible_llvm_verify m "set_indirect" [] false set_spec abc;
@@ -62,7 +60,6 @@ class LLVMStructTest(unittest.TestCase):
         self.assertIs(llvm_verify(mod, 'add_indirect', AddContract()).is_success(), True)
         # crucible_llvm_verify m "s_id" [] false id_spec abc;
         self.assertIs(llvm_verify(mod, 's_id', IdContract()).is_success(), True)
-        disconnect()
 
 if __name__ == "__main__":
     unittest.main()

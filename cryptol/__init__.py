@@ -195,7 +195,8 @@ class CryptolFocusedModule(argo.Query):
     def process_result(self, res : Any) -> Any:
         return res
 
-def connect(command : str=None, *,
+def connect(command : Optional[str]=None,
+            *,
             cryptol_path : Optional[str] = None,
             url : Optional[str] = None) -> CryptolConnection:
     """
@@ -212,13 +213,13 @@ def connect(command : str=None, *,
     If no parameters are provided, the following are attempted in order:
 
     1. If the environment variable ``CRYPTOL_SERVER`` is set and referse to an executable,
-    it is assumed to be a Cryptol server and will be used for a new stdio connection.
+    it is assumed to be a Cryptol server and will be used for a new ``stdio`` connection.
 
     2. If the environment variable ``CRYPTOL_SERVER_URL`` is set, it is assumed to be
-    the URL for a running Cryptol server in HTTP mode and will be connected to.
+    the URL for a running Cryptol server in ``http`` mode and will be connected to.
 
     3. If an executable ``cryptol-remote-api`` is available on the ``PATH``
-    it is assumed to be a Cryptol server and will be used for a new stdio connection.
+    it is assumed to be a Cryptol server and will be used for a new ``stdio`` connection.
 
     """
     if command is not None:
