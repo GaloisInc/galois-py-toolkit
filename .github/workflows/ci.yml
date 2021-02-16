@@ -45,7 +45,7 @@ jobs:
           ghcr.io/galoisinc/cryptol-remote-api:nightly-portable
     - name: Test Cryptol Remote Server/Client
       run: |
-        python -m unittest discover tests/cryptol`
+        python -m unittest discover tests/cryptol
         docker container kill cryptol-remote-api
       env:
         CRYPTOL_SERVER_URL: "http://localhost:8080/"
