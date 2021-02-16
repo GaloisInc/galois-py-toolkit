@@ -44,6 +44,8 @@ jobs:
           -p 8080:8080 \
           ghcr.io/galoisinc/cryptol-remote-api:nightly-portable
     - name: Test Cryptol Remote Server/Client
+      # The below tests should just be `python -m unittest discover tests/cryptol`
+      # but our server needs some tinkering to allow re-use without breaking.
       run: |
         python -m unittest tests/cryptol/test_bitvector.py
         python -m unittest tests/cryptol/test_cryptol_api.py
@@ -64,11 +66,13 @@ jobs:
       env:
         SAW_SERVER_URL: "http://localhost:8080/"
     - name: Unittest SAW remote client/server
+      # The below tests should just be `python -m unittest discover tests/saw` or similar
+      # but our server needs some tinkering to allow re-use without breaking.
       run: |
-        python -m unittest discover tests/saw/test_swap_easy.py
+        python -m unittest tests/saw/test_swap_easy.py
         docker restart saw-remote-api
-        python -m unittest discover tests/saw/test_llvm_struct.py
+        python -m unittest tests/saw/test_llvm_struct.py
         docker restart saw-remote-api
-        python -m unittest discover tests/saw/salsa20_easy.py
+        python -m unittest tests/saw/salsa20_easy.py
       env:
         SAW_SERVER_URL: "http://localhost:8080/"
