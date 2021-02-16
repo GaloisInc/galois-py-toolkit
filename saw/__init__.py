@@ -186,13 +186,8 @@ class View:
         """When some Python exception occurs, do this."""
         pass
 
-    def on_finish_success(self) -> None:
-        """After all verifications are finished successfully, do this."""
-        pass
-
-    def on_finish_failure(self) -> None:
-        """After all verifications are finished but with some failures,
-           do this."""
+    def on_finish(self) -> None:
+        """After all verifications are finished, do this."""
         pass
 
     def on_abort(self) -> None:
@@ -269,11 +264,23 @@ class LogResults(View):
         self.successes.append(result)
         print(self.format_success(result), file=self.file)
 
-    def on_finish_success(self) -> None:
-        print("✅  All verified!", file=self.file)
-
-    def on_finish_failure(self) -> None:
-        print("🛑  Some lemmas failed to verify.", file=self.file)
+    def on_finish(self) -> None:
+        failures = len(self.failures)
+        successes = len(self.successes)
+        total = failures + successes
+        if total == 0:
+            print(f'🔶 No goal results logged.', file=self.file)
+        elif failures > 0:
+            if failures == 1 and total == 1:
+                print(f'🛑  The goal failed to verify.', file=self.file)
+            elif failures == total:
+                print(f'🛑  All {total!r} goals failed to verify.', file=self.file)
+            else:
+                print(f'🛑  {failures!r} out of {total!r} goals failed to verify.', file=self.file)
+        elif successes == 1:
+            print(f'✅  The goal was verified!', file=self.file)
+        else:
+            print(f'✅  All {successes!r} goals verified!', file=self.file)
 
     def on_abort(self) -> None:
         print("🛑  Aborting proof script.", file=self.file)
@@ -395,7 +402,4 @@ def llvm_verify(module: LLVMModule,
 def script_exit() -> None:
     global __designated_views
     for view in __designated_views:
-        if __global_success:
-            view.on_finish_success()
-        else:
-            view.on_finish_failure()
+        view.on_finish()
