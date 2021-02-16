@@ -1,14 +1,59 @@
 from __future__ import annotations
 import os
 import signal
-from argo_client.connection import ServerConnection, DynamicSocketProcess
+from distutils.spawn import find_executable
+from argo_client.connection import ServerConnection, DynamicSocketProcess, StdIOProcess, HttpProcess
 from argo_client.interaction import Interaction, Command
 from .commands import *
 
 from typing import Optional, Union, Any, List
 
+# FIXME cryptol_path isn't always used...?
+def connect(command: Union[str, ServerConnection, None] = None,
+            *,
+            cryptol_path: Optional[str] = None,
+            persist: bool = False,
+            url : Optional[str] = None) -> SAWConnection:
+    """
+    Connect to a (possibly new) Saw server process.
 
-def connect(command: str, cryptol_path: Optional[str] = None, *, persist: bool = False) -> SAWConnection:
+    :param command: A command to launch a new Saw server in socket mode (if provided).
+
+    :param url: A URL at which to connect to an already running SAW 
+    HTTP server.
+
+    If no parameters are provided, the following are attempted in order:
+
+    1. If the environment variable ``SAW_SERVER`` is set and referse to an executable,
+    it is assumed to be a SAW server and will be used for a new ``socket`` connection.
+
+    2. If the environment variable ``SAW_SERVER_URL`` is set, it is assumed to be
+    the URL for a running SAW server in ``http`` mode and will be connected to.
+
+    3. If an executable ``saw-remote-api`` is available on the ``PATH``
+    it is assumed to be a SAW server and will be used for a new ``socket`` connection.
+
+    """
+    if command is not None:
+        if url is not None:
+            raise ValueError("A SAW server URL cannot be specified with a command currently.")
+        return SAWConnection(command)
+    elif url is not None:
+        return SAWConnection(ServerConnection(HttpProcess(url)))
+    elif (command := os.getenv('SAW_SERVER')) is not None and (command := find_executable(command)) is not None:
+        return SAWConnection(command+" socket") # SAWConnection(ServerConnection(StdIOProcess(command+" stdio")))
+    elif (url := os.getenv('SAW_SERVER_URL')) is not None:
+        return SAWConnection(ServerConnection(HttpProcess(url)))
+    elif (command := find_executable('saw-remote-api')) is not None:
+        return SAWConnection(command+" socket")
+    else:
+        raise ValueError(
+            """saw.connection.connect requires one of the following:",
+            1) a command to launch a SAW server is the first positional argument,
+            2) a URL to connect to a running SAW server is provided via the `url` keyword argument,
+            3) the environment variable `SAW_SERVER` must refer to a valid server executable, or
+            4) the environment variable `SAW_SERVER_URL` must refer to the URL of a running SAW server.""")
+
     return SAWConnection(command, persist=persist)
 
 
@@ -30,8 +75,8 @@ class SAWConnection:
 
     def disconnect(self) -> None:
         if not self.persist:
-            if self.proc:
-                os.killpg(os.getpgid(self.proc.pid()), signal.SIGKILL)
+            if self.proc and (pid := self.proc.pid()):
+                os.killpg(os.getpgid(pid), signal.SIGKILL)
             del self.server_connection
         
 

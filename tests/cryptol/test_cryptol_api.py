@@ -1,13 +1,11 @@
-import os
 import unittest
+from pathlib import Path
 import cryptol
 import cryptol.cryptoltypes
 from cryptol import solver
 from cryptol.bitvector import BV
 from BitVector import *
-from distutils.spawn import find_executable
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
 
 class CryptolTests(unittest.TestCase):
     # Connection to cryptol
@@ -15,20 +13,14 @@ class CryptolTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        if find_executable("cryptol-remote-api"):
-            self.c = cryptol.connect("cryptol-remote-api socket")
-        else:
-            raise RuntimeError('Failed to find cryptol-remote-api executable in PATH')
-
-        self.c.change_directory(dir_path)
-
-        self.c.load_file("Foo.cry")
+        self.c = cryptol.connect()
+        self.c.load_file(str(Path('tests','cryptol','test-files', 'Foo.cry')))
 
     def test_low_level(self):
         c = self.c
         x_val = c.evaluate_expression("x").result()
 
-        self.assertEqual(c.evaluate_expression("Id::id x").result(), x_val)
+        self.assertEqual(c.eval("Id::id x").result(), x_val)
         self.assertEqual(c.call('Id::id', bytes.fromhex('ff')).result(), BV(8,255))
 
         self.assertEqual(c.call('add', b'\0', b'\1').result(), BV(8,1))

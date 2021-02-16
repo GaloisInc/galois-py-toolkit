@@ -103,15 +103,41 @@ class AssumptionFailed(VerificationFailed):
                          contract,
                          exception)
 
+# FIXME cryptol_path isn't always used...?
+def connect(command: Union[str, ServerConnection, None] = None,
+            *, 
+            cryptol_path: Optional[str] = None,
+            persist: bool = False,
+            url : Optional[str] = None) -> None:
+    """
+    Connect to a (possibly new) Saw server process.
 
-def connect(command_or_connection: Union[str, ServerConnection],
-            *, persist: bool = False) -> None:
+    :param command: A command to launch a new Saw server in socket mode (if provided).
+
+    :param url: A URL at which to connect to an already running SAW
+    HTTP server.
+
+    If no parameters are provided, the following are attempted in order:
+
+    1. If the environment variable ``SAW_SERVER`` is set and referse to an executable,
+    it is assumed to be a SAW server and will be used for a new ``stdio`` connection.
+
+    2. If the environment variable ``SAW_SERVER_URL`` is set, it is assumed to be
+    the URL for a running SAW server in ``http`` mode and will be connected to.
+
+    3. If an executable ``saw-remote-api`` is available on the ``PATH``
+    it is assumed to be a SAW server and will be used for a new ``stdio`` connection.
+
+    """
     global __designated_connection
 
     # Set the designated connection by starting a server process
     if __designated_connection is None:
-        __designated_connection = \
-            connection.SAWConnection(command_or_connection, persist=persist)
+        __designated_connection = connection.connect(
+            command=command,
+            cryptol_path=cryptol_path,
+            persist=persist,
+            url=url)
     else:
         raise ValueError("There is already a designated connection."
                          " Did you call `connect()` more than once?")
@@ -134,22 +160,14 @@ def disconnect() -> None:
     if __designated_connection is not None:
         try:
             pid = __designated_connection.pid()
-            os.killpg(os.getpgid(pid), signal.SIGKILL)
+            if pid:
+                os.killpg(os.getpgid(pid), signal.SIGKILL)
         except ProcessLookupError:
             pass
         __designated_connection = None
     else:
         raise ValueError("There is no connection to disconnect from."
                          " Did you call `disconnect()` more than once?")
-
-def find_saw_server():
-    server = os.environ.get('SAW_SERVER')
-    if not server:
-        if find_executable("saw-remote-api"):
-            server = "saw-remote-api"
-        else:
-            raise RuntimeError('Failed to find saw-remote-api executable in PATH nor was the SAW_SERVER environment variable set')
-    return server
 
 
 class View:
