@@ -44,35 +44,30 @@ jobs:
           -p 8080:8080 \
           ghcr.io/galoisinc/cryptol-remote-api:nightly-portable
     - name: Test Cryptol Remote Server/Client
-      # The below tests should just be `python -m unittest discover tests/cryptol`
-      # but our server needs some tinkering to allow re-use without breaking.
       run: |
-        python -m unittest tests/cryptol/test_bitvector.py
-        python -m unittest tests/cryptol/test_cryptol_api.py
-        docker restart cryptol-remote-api
-        python -m unittest tests/cryptol/test_low_level_ops.py
+        python -m unittest discover tests/cryptol`
         docker container kill cryptol-remote-api
       env:
         CRYPTOL_SERVER_URL: "http://localhost:8080/"
     # - name: Unittest Cryptol (eval) client/server
     #   run: |
     #     python -m unittest discover tests/cryptol_eval
-    - name: Test SAW Remote Server/Client
-      run: |
-        docker run --name=saw-remote-api -d \
-          -v $PWD/tests/saw/test-files:/tests/saw/test-files \
-          -p 8080:8080 \
-          galoisinc/saw-remote-api:nightly
-      env:
-        SAW_SERVER_URL: "http://localhost:8080/"
-    - name: Unittest SAW remote client/server
-      # The below tests should just be `python -m unittest discover tests/saw` or similar
-      # but our server needs some tinkering to allow re-use without breaking.
-      run: |
-        python -m unittest tests/saw/test_swap_easy.py
-        docker restart saw-remote-api
-        python -m unittest tests/saw/test_llvm_struct.py
-        docker restart saw-remote-api
-        python -m unittest tests/saw/salsa20_easy.py
-      env:
-        SAW_SERVER_URL: "http://localhost:8080/"
+    # - name: Test SAW Remote Server/Client
+    #   run: |
+    #     docker run --name=saw-remote-api -d \
+    #       -v $PWD/tests/saw/test-files:/tests/saw/test-files \
+    #       -p 8080:8080 \
+    #       galoisinc/saw-remote-api:nightly
+    #   env:
+    #     SAW_SERVER_URL: "http://localhost:8080/"
+    # - name: Unittest SAW remote client/server
+    #   # The below tests should just be `python -m unittest discover tests/saw` or similar
+    #   # but our server needs some tinkering to allow re-use without breaking ATM...
+    #   run: |
+    #     python -m unittest tests/saw/test_swap_easy.py
+    #     docker restart saw-remote-api
+    #     python -m unittest tests/saw/test_llvm_struct.py
+    #     docker restart saw-remote-api
+    #     python -m unittest tests/saw/salsa20_easy.py
+    #   env:
+    #     SAW_SERVER_URL: "http://localhost:8080/"

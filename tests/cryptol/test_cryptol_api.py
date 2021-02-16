@@ -14,9 +14,7 @@ class CryptolTests(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         self.c = cryptol.connect()
-        dir_path = str(Path('tests','cryptol','test-files'))
-        self.c.change_directory(dir_path)
-        self.c.load_file("Foo.cry")
+        self.c.load_file(str(Path('tests','cryptol','test-files', 'Foo.cry')))
 
     def test_low_level(self):
         c = self.c

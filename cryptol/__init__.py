@@ -213,13 +213,13 @@ def connect(command : Optional[str]=None,
     If no parameters are provided, the following are attempted in order:
 
     1. If the environment variable ``CRYPTOL_SERVER`` is set and referse to an executable,
-    it is assumed to be a Cryptol server and will be used for a new ``stdio`` connection.
+    it is assumed to be a Cryptol server and will be used for a new ``socket`` connection.
 
     2. If the environment variable ``CRYPTOL_SERVER_URL`` is set, it is assumed to be
     the URL for a running Cryptol server in ``http`` mode and will be connected to.
 
     3. If an executable ``cryptol-remote-api`` is available on the ``PATH``
-    it is assumed to be a Cryptol server and will be used for a new ``stdio`` connection.
+    it is assumed to be a Cryptol server and will be used for a new ``socket`` connection.
 
     """
     if command is not None:
@@ -229,11 +229,11 @@ def connect(command : Optional[str]=None,
     elif url is not None:
         return CryptolConnection(ServerConnection(HttpProcess(url)), cryptol_path)
     elif (command := os.getenv('CRYPTOL_SERVER')) is not None and (command := find_executable(command)) is not None:
-        return CryptolConnection(CryptolStdIOProcess(command+" stdio", cryptol_path=cryptol_path))
+        return CryptolConnection(command+" socket", cryptol_path=cryptol_path)
     elif (url := os.getenv('CRYPTOL_SERVER_URL')) is not None:
         return CryptolConnection(ServerConnection(HttpProcess(url)), cryptol_path)
     elif (command := find_executable('cryptol-remote-api')) is not None:
-        return CryptolConnection(CryptolStdIOProcess(command+" stdio", cryptol_path=cryptol_path))
+        return CryptolConnection(command+" socket", cryptol_path=cryptol_path)
     else:
         raise ValueError(
             """cryptol.connect requires one of the following:",
