@@ -67,7 +67,7 @@ jobs:
       # The below tests should just be `python -m unittest discover tests/saw` or similar
       # but our server needs some tinkering to allow re-use without breaking ATM... =(
       run: |
-        python -m unittest tests/saw/test_swap_easy.py
+        python -m unittest tests/saw/test_swap.py
         docker restart saw-remote-api
       env:
         SAW_SERVER_URL: "http://localhost:8080/"
@@ -97,7 +97,7 @@ jobs:
         time: '5s'
     - name: Test SAW Remote Server/Client 4 of 5
       run: |
-        python -m unittest tests/saw/test_salsa20_easy.py
+        python -m unittest tests/saw/test_salsa20.py
         docker restart saw-remote-api
       env:
         SAW_SERVER_URL: "http://localhost:8080/"
