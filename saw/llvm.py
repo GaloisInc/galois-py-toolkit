@@ -1,7 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from cryptol import cryptoltypes
 from saw.llvm_types import LLVMType
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+import dataclasses
 import re
 from typing import Any, Dict, List, Optional, Set, Union
 from typing_extensions import Literal
@@ -126,6 +127,30 @@ class StructVal(SetupVal):
     def to_json(self) -> Any:
         return {'setup value': 'struct', 'fields': [fld.to_json() for fld in self.fields]}
 
+class ElemVal(SetupVal):
+    base : SetupVal
+    index : int
+
+    def __init__(self, base : SetupVal, index : int) -> None:
+        self.base = base
+        self.index = index
+
+    def to_json(self) -> Any:
+        return {'setup value': 'element lvalue',
+                'base': self.base.to_json(), 'index': self.index}
+
+class FieldVal(SetupVal):
+    base : SetupVal
+    field_name : str
+
+    def __init__(self, base : SetupVal, field_name : str) -> None:
+        self.base = base
+        self.field_name = field_name
+
+    def to_json(self) -> Any:
+        return {'setup value': 'field',
+                'base': self.base.to_json(), 'field': self.field_name}
+
 name_regexp = re.compile('^(?P<prefix>.*[^0-9])?(?P<number>[0-9]+)?$')
 
 def next_name(x : str) -> str:
@@ -193,10 +218,10 @@ class PointsTo:
 @dataclass
 class State:
     contract : 'Contract'
-    fresh : List[FreshVar] = field(default_factory=list)
-    conditions : List[Condition] = field(default_factory=list)
-    allocated : List[Allocated] = field(default_factory=list)
-    points_to : List[PointsTo] = field(default_factory=list)
+    fresh : List[FreshVar] = dataclasses.field(default_factory=list)
+    conditions : List[Condition] = dataclasses.field(default_factory=list)
+    allocated : List[Allocated] = dataclasses.field(default_factory=list)
+    points_to : List[PointsTo] = dataclasses.field(default_factory=list)
 
     def to_json(self) -> Any:
         return {'variables': [v.to_init_json() for v in self.fresh],
@@ -416,6 +441,14 @@ class Contract:
 def cryptol(data : Any) -> 'CryptolTerm':
     """Returns a ``CryptolTerm`` wrapper around ``data``."""
     return CryptolTerm(data)
+
+def elem(base: SetupVal, index: int) -> 'ElemVal':
+    """Returns an ``ElemVal`` using the index ``index`` of the array ``base``."""
+    return ElemVal(base, index)
+
+def field(base : SetupVal, field_name : str) -> 'FieldVal':
+    """Returns a ``FieldVal`` using the field ``field_name`` of the struct ``base``."""
+    return FieldVal(base, field_name)
 
 def struct(*fields : SetupVal) -> StructVal:
     """Returns a ``StructVal`` with fields ``fields``."""
