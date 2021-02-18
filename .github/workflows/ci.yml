@@ -40,7 +40,7 @@ jobs:
     - name: Launch Cryptol Remote Server
       run: |
         docker run --name=cryptol-remote-api -d \
-          -v $PWD/tests/cryptol/test-files:/tests/cryptol/test-files \
+          -v $PWD/tests/cryptol/test-files:/home/cryptol/tests/cryptol/test-files \
           -p 8080:8080 \
           ghcr.io/galoisinc/cryptol-remote-api:nightly-portable
     - name: Test Cryptol Remote Server/Client
