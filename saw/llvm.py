@@ -3,7 +3,7 @@ from cryptol import cryptoltypes
 from saw.llvm_types import LLVMType
 from dataclasses import dataclass, field
 import re
-from typing import Any, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set, Union
 from typing_extensions import Literal
 import inspect
 import uuid
@@ -149,14 +149,11 @@ def uniquify(x : str, used : Set[str]) -> str:
     return x
 
 
-class PointsTo:
-    def __init__(self, pointer : SetupVal, target : SetupVal) -> None:
-        self.pointer = pointer
-        self.target = target
-
-    def to_json(self) -> Any:
-        return {"pointer": self.pointer.to_json(),
-                "points to": self.target.to_json()}
+class PointerType:
+    """A trivial class indicating that PointsTo should check ``target``'s type
+    against the type that ``pointer``'s type points to.
+    """
+    pass
 
 
 class Condition:
@@ -165,6 +162,32 @@ class Condition:
 
     def to_json(self) -> Any:
         return cryptoltypes.to_cryptol(self.cryptol_term)
+
+
+class PointsTo:
+    """The workhorse for ``points_to``.
+    """
+    def __init__(self, pointer : SetupVal, target : SetupVal, *,
+                 check_target_type : Union[PointerType, LLVMType, None] = PointerType(),
+                 condition : Optional[Condition] = None) -> None:
+        self.pointer = pointer
+        self.target = target
+        self.check_target_type = check_target_type
+        self.condition = condition
+
+    def to_json(self) -> Any:
+        check_target_type_json: Optional[Dict[str, Any]]
+        if self.check_target_type is None:
+            check_target_type_json = None
+        elif isinstance(self.check_target_type, PointerType):
+            check_target_type_json = { "check against": "pointer type" }
+        elif isinstance(self.check_target_type, LLVMType):
+            check_target_type_json = { "check against": "casted type"
+                                     , "type": self.check_target_type.to_json() }
+        return {"pointer": self.pointer.to_json(),
+                "points to": self.target.to_json(),
+                "check points to type": check_target_type_json,
+                "condition": self.condition.to_json() if self.condition is not None else self.condition}
 
 
 @dataclass
@@ -294,14 +317,30 @@ class Contract:
 
         return a
 
-    def points_to(self, pointer : SetupVal, target : SetupVal) -> None:
-        pt = PointsTo(pointer, target)
+    def points_to(self, pointer : SetupVal, target : SetupVal, *,
+                  check_target_type : Union[PointerType, LLVMType, None] = PointerType(),
+                  condition : Optional[Condition] = None) -> None:
+        """Declare that the memory location indicated by the ``pointer``
+        contains the ``target``.
+
+        If ``check_target_type == PointerType()``, then this will check that
+        ``target``'s type matches the type that ``pointer``'s type points to.
+        If ``check_target_type`` is an ``LLVMType``, then this will check that
+        ``target``'s type matches that type.
+        If ``check_target_type == None`, then this will not check ``target``'s
+        type at all.
+
+        If ``condition != None`, then this will only declare that ``pointer``
+        points to ``target`` is the ``condition`` holds.
+        """
+        pt = PointsTo(pointer, target, check_target_type = check_target_type, condition = condition)
         if self.__state == 'pre':
             self.__pre_state.points_to.append(pt)
         elif self.__state == 'post':
             self.__post_state.points_to.append(pt)
         else:
             raise Exception("wrong state")
+
 
     def proclaim(self, proposition : Union[str, CryptolTerm, cryptoltypes.CryptolJSON]) -> None:
         if not isinstance(proposition, CryptolTerm):

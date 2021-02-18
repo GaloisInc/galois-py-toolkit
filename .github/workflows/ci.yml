@@ -63,7 +63,7 @@ jobs:
       uses: jakejarvis/wait-action@master
       with:
         time: '5s'
-    - name: Test SAW Remote Server/Client 1 of 3
+    - name: Test SAW Remote Server/Client 1 of 4
       # The below tests should just be `python -m unittest discover tests/saw` or similar
       # but our server needs some tinkering to allow re-use without breaking ATM... =(
       run: |
@@ -75,7 +75,7 @@ jobs:
       uses: jakejarvis/wait-action@master
       with:
         time: '5s'
-    - name: Test SAW Remote Server/Client 2 of 3
+    - name: Test SAW Remote Server/Client 2 of 4
       run: |
         # python -m unittest tests/saw/test_llvm_struct.py
         docker restart saw-remote-api
@@ -85,8 +85,18 @@ jobs:
       uses: jakejarvis/wait-action@master
       with:
         time: '5s'
-    - name: Test SAW Remote Server/Client 3 of 3
+    - name: Test SAW Remote Server/Client 3 of 4
       run: |
         python -m unittest tests/saw/test_salsa20_easy.py
+        docker restart saw-remote-api
+      env:
+        SAW_SERVER_URL: "http://localhost:8080/"
+    - name: Sleep for 5 seconds
+      uses: jakejarvis/wait-action@master
+      with:
+        time: '5s'
+    - name: Test SAW Remote Server/Client 4 of 4
+      run: |
+        python -m unittest tests/saw/test_points_to_at_type.py
       env:
         SAW_SERVER_URL: "http://localhost:8080/"
