@@ -63,9 +63,9 @@ jobs:
       # but our server needs some tinkering to allow re-use without breaking ATM... =(
       run: |
         python -m unittest tests/saw/test_swap_easy.py
-        docker restart saw-remote-api
-        python -m unittest tests/saw/test_llvm_struct.py
-        docker restart saw-remote-api
-        python -m unittest tests/saw/test_salsa20_easy.py
+        # docker restart saw-remote-api
+        # python -m unittest tests/saw/test_llvm_struct.py
+        # docker restart saw-remote-api
+        # python -m unittest tests/saw/test_salsa20_easy.py
       env:
         SAW_SERVER_URL: "http://localhost:8080/"
