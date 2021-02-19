@@ -36,22 +36,26 @@ jobs:
         python -m mypy cryptol saw
     # FIXME - currently cryptol server requires a restart between tests as starting from the
     # initial server state in a request does _not_ seem to restart the working directory of
-    # the server.
-    # - name: Launch Cryptol Remote Server
-    #   run: |
-    #     docker run --name=cryptol-remote-api -d \
-    #       -v $PWD/tests/cryptol/test-files:/home/cryptol/tests/cryptol/test-files \
-    #       -p 8080:8080 \
-    #       ghcr.io/galoisinc/cryptol-remote-api:nightly-portable
-    # - name: Test Cryptol Remote Server/Client
-    #   run: |
-    #     python -m unittest discover tests/cryptol
-    #     docker container kill cryptol-remote-api
-    #   env:
-    #     CRYPTOL_SERVER_URL: "http://localhost:8080/"
-    # - name: Unittest Cryptol (eval) client/server
-    #   run: |
-    #     python -m unittest discover tests/cryptol_eval
+    the server.
+    - name: Launch Cryptol Remote Server
+      run: |
+        docker run --name=cryptol-remote-api -d \
+          -v $PWD/tests/cryptol/test-files:/home/cryptol/tests/cryptol/test-files \
+          -p 8080:8080 \
+          ghcr.io/galoisinc/cryptol-remote-api:nightly-portable
+    - name: Sleep for 5 seconds
+      uses: jakejarvis/wait-action@master
+      with:
+        time: '5s'
+    - name: Test Cryptol Remote Server/Client
+      run: |
+        python -m unittest discover tests/cryptol
+        docker container kill cryptol-remote-api
+      env:
+        CRYPTOL_SERVER_URL: "http://localhost:8080/"
+    - name: Unittest Cryptol (eval) client/server
+      run: |
+        python -m unittest discover tests/cryptol_eval
     - name: Launch SAW Remote Server
       run: |
         docker run --name=saw-remote-api -d \
