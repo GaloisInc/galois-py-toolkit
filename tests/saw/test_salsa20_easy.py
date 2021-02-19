@@ -124,7 +124,6 @@ class Salsa20CryptContract(Contract):
 
 class Salsa20EasyTest(unittest.TestCase):
     def test_salsa20(self):
-        dir_path = os.path.dirname(os.path.realpath(__file__))
 
         connect()
         if __name__ == "__main__": view(LogResults())
