@@ -34,9 +34,6 @@ jobs:
     - name: Typecheck with mypy
       run: |
         python -m mypy cryptol saw
-    # FIXME - currently cryptol server requires a restart between tests as starting from the
-    # initial server state in a request does _not_ seem to restart the working directory of
-    the server.
     - name: Launch Cryptol Remote Server
       run: |
         docker run --name=cryptol-remote-api -d \
