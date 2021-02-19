@@ -249,7 +249,7 @@ class Contract:
         portion of this ``Contract``."""
         if self.__arguments is not None:
             raise ValueError("The function has already been called once during the specification.")
-        elif self.__state is not 'pre':
+        elif self.__state != 'pre':
             raise ValueError("Contract state expected to be 'pre', but found {self.__state!r} (has `execute_func` already been called for this contract?).")
         else:
             self.__arguments = [arg for arg in args]
