@@ -50,9 +50,9 @@ jobs:
         docker container kill cryptol-remote-api
       env:
         CRYPTOL_SERVER_URL: "http://localhost:8080/"
-    - name: Unittest Cryptol (eval) client/server
-      run: |
-        python -m unittest discover tests/cryptol_eval
+    # - name: Unittest Cryptol (eval) client/server
+    #   run: |
+    #     python -m unittest discover tests/cryptol_eval
     - name: Launch SAW Remote Server
       run: |
         docker run --name=saw-remote-api -d \
@@ -63,12 +63,30 @@ jobs:
       uses: jakejarvis/wait-action@master
       with:
         time: '5s'
-    - name: Test SAW Remote Server/Client
+    - name: Test SAW Remote Server/Client 1 of 3
       # The below tests should just be `python -m unittest discover tests/saw` or similar
       # but our server needs some tinkering to allow re-use without breaking ATM... =(
       run: |
         python -m unittest tests/saw/test_swap_easy.py
+        docker restart saw-remote-api
+      env:
+        SAW_SERVER_URL: "http://localhost:8080/"
+    - name: Sleep for 5 seconds
+      uses: jakejarvis/wait-action@master
+      with:
+        time: '5s'
+    - name: Test SAW Remote Server/Client 2 of 3
+      run: |
         # python -m unittest tests/saw/test_llvm_struct.py
-        # python -m unittest tests/saw/test_salsa20_easy.py
+        docker restart saw-remote-api
+      env:
+        SAW_SERVER_URL: "http://localhost:8080/"
+    - name: Sleep for 5 seconds
+      uses: jakejarvis/wait-action@master
+      with:
+        time: '5s'
+    - name: Test SAW Remote Server/Client 3 of 3
+      run: |
+        python -m unittest tests/saw/test_salsa20_easy.py
       env:
         SAW_SERVER_URL: "http://localhost:8080/"
