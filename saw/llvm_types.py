@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Any
+from typing import Any, List
 
 class LLVMType(metaclass=ABCMeta):
     @abstractmethod
@@ -37,6 +37,21 @@ class LLVMAliasType(LLVMType):
         return {'type': 'type alias',
                 'alias of': self.name}
 
+class LLVMStructType(LLVMType):
+    def __init__(self, field_types : List[LLVMType]) -> None:
+        self.field_types = field_types
+
+    def to_json(self) -> Any:
+        return {'type': 'struct',
+                'fields': [fld_ty.to_json() for fld_ty in self.field_types]}
+
+class LLVMPackedStructType(LLVMType):
+    def __init__(self, field_types : List[LLVMType]) -> None:
+        self.field_types = field_types
+
+    def to_json(self) -> Any:
+        return {'type': 'packed struct',
+                'fields': [fld_ty.to_json() for fld_ty in self.field_types]}
 
 ##################################################
 # Convenient helpers with intuitive/short names #
@@ -58,3 +73,11 @@ def ptr(ty : 'LLVMType') -> 'LLVMPointerType':
 def alias(name : str) -> 'LLVMAliasType':
     """An LLVM type alias (i.e., name)."""
     return LLVMAliasType(name)
+
+def struct_type(*field_types : LLVMType) -> 'LLVMStructType':
+    """An LLVM struct type."""
+    return LLVMStructType(list(field_types))
+
+def packed_struct_type(*field_types : LLVMType) -> 'LLVMPackedStructType':
+    """An LLVM packed struct type."""
+    return LLVMPackedStructType(list(field_types))
