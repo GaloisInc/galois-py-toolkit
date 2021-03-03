@@ -99,11 +99,13 @@ class FreshVar(NamedSetupVal):
 class Allocated(NamedSetupVal):
     name : Optional[str]
 
-    def __init__(self, spec : 'Contract', type : LLVMType, *, mutable : bool = True) -> None:
+    def __init__(self, spec : 'Contract', type : LLVMType, *,
+                 mutable : bool = True, alignment : Optional[int] = None) -> None:
         self.name = None
         self.spec = spec
         self.type = type
         self.mutable = mutable
+        self.alignment = alignment
 
     def to_init_json(self) -> Any:
         if self.name is None:
@@ -111,7 +113,7 @@ class Allocated(NamedSetupVal):
         return {"server name": self.name,
                 "type": self.type.to_json(),
                 "mutable": self.mutable,
-                "alignment": None}
+                "alignment": self.alignment}
 
     def to_json(self) -> Any:
         if self.name is None:
@@ -320,16 +322,22 @@ class Contract:
             raise Exception("wrong state")
         return v
 
-    def alloc(self, type : LLVMType, *, read_only : bool = False, points_to : Optional[SetupVal] = None) -> SetupVal:
+    def alloc(self, type : LLVMType, *, read_only : bool = False,
+                                        alignment : Optional[int] = None,
+                                        points_to : Optional[SetupVal] = None) -> SetupVal:
         """Allocates a pointer of type ``type``.
 
         If ``read_only == True`` then the allocated memory is immutable.
+
+        If ``alignment != None``, then the start of the allocated region of
+        memory will be aligned to a multiple of the specified number of bytes
+        (which must be a power of 2).
 
         If ``points_to != None``, it will also be asserted that the allocated memory contains the
         value specified by ``points_to``.
 
         :returns A pointer of the proper type to the allocated region."""
-        a = Allocated(self, type, mutable = not read_only)
+        a = Allocated(self, type, mutable = not read_only, alignment = alignment)
         if self.__state == 'pre':
             self.__pre_state.allocated.append(a)
         elif self.__state == 'post':
